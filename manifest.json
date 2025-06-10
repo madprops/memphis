@@ -13,7 +13,7 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["content_scripts/injector.js"]
+            "js": ["injector.js"]
         }
     ],
     "browser_action": {
