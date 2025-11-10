@@ -8,165 +8,12 @@ browser.runtime.onMessage.addListener((message) => {
 
 let overlay_on = false
 let overlay = null
-
-// Middle click drag scroll functionality
-let is_middle_dragging = false
-let drag_start_y = 0
-let drag_origin_element = null
-let scroll_threshold = 20
-
-document.addEventListener(`mousedown`, (e) => {
-    if (e.button !== 1) {
-        return
-    }
-
-    if (should_ignore_middle_click(e.target)) {
-        is_middle_dragging = false
-        drag_origin_element = null
-        return
-    }
-
-    is_middle_dragging = true
-    drag_start_y = e.clientY
-    drag_origin_element = e.target
-}, true)
-
-document.addEventListener(`mousemove`, (e) => {
-    if (!is_middle_dragging) {
-        return
-    }
-
-    let drag_distance = Math.abs(drag_start_y - e.clientY)
-
-    if (drag_distance > scroll_threshold) {
-        e.preventDefault()
-    }
-}, true)
-
-document.addEventListener(`mouseup`, (e) => {
-    if (!is_middle_dragging || e.button !== 1) {
-        return
-    }
-
-    let drag_distance = drag_start_y - e.clientY
-    let handled = false
-
-    if (Math.abs(drag_distance) > scroll_threshold) {
-        if (drag_distance > 0) {
-            scroll_to_limit(drag_origin_element || e.target, `top`)
-        }
-        else {
-            scroll_to_limit(drag_origin_element || e.target, `bottom`)
-        }
-
-        handled = true
-    }
-
-    is_middle_dragging = false
-    drag_start_y = 0
-    drag_origin_element = null
-
-    if (handled) {
-        e.preventDefault()
-    }
-}, true)
-
-let should_ignore_middle_click = (element) => {
-    let el = element
-
-    while (el) {
-        if (el.nodeType !== 1) {
-            el = el.parentElement
-            continue
-        }
-
-        let tag = el.tagName
-
-        if (tag === `INPUT` || tag === `TEXTAREA` || tag === `SELECT`) {
-            return true
-        }
-
-        if (el.isContentEditable) {
-            return true
-        }
-
-        el = el.parentElement
-    }
-
-    return false
+let middle_drag = {
+    active: false,
+    start_y: 0,
+    target: null,
 }
-
-const SCROLLABLE_OVERFLOW_VALUES = [
-    `auto`,
-    `scroll`,
-    `overlay`,
-]
-
-let can_scroll = (element) => {
-    if (!element) {
-        return false
-    }
-
-    if (element === document.body || element === document.documentElement) {
-        return true
-    }
-
-    let style = window.getComputedStyle(element)
-
-    if (!style) {
-        return false
-    }
-
-    let overflow_y = style.overflowY
-    let overflow = style.overflow
-
-    if (!SCROLLABLE_OVERFLOW_VALUES.includes(overflow_y) && !SCROLLABLE_OVERFLOW_VALUES.includes(overflow)) {
-        return false
-    }
-
-    return element.scrollHeight > element.clientHeight
-}
-
-let find_scroll_target = (element) => {
-    let el = element
-
-    while (el) {
-        if (can_scroll(el)) {
-            return el
-        }
-
-        el = el.parentElement
-    }
-
-    return document.scrollingElement || document.documentElement
-}
-
-let scroll_to_limit = (element, position) => {
-    let target = find_scroll_target(element)
-
-    if (!target) {
-        return
-    }
-
-    let to_top = position === `top`
-
-    if (target === document.body || target === document.documentElement || target === document.scrollingElement) {
-        let max_top = Math.max((target.scrollHeight - window.innerHeight), 0)
-        let top_value = to_top ? 0 : max_top
-        window.scrollTo({top: top_value, behavior: `smooth`})
-        return
-    }
-
-    let desired_top = to_top ? 0 : Math.max((target.scrollHeight - target.clientHeight), 0)
-
-    if (typeof target.scrollTo === `function`) {
-        target.scrollTo({top: desired_top, behavior: `smooth`})
-        return
-    }
-
-    target.scrollTop = desired_top
-}
-
+let MIDDLE_THRESHOLD = 20
 
 // Function to toggle the overlay
 function toggle_overlay() {
@@ -190,4 +37,100 @@ function toggle_overlay() {
         document.body.appendChild(overlay)
         overlay_on = true
     }
+}
+
+document.addEventListener(`mousedown`, (event) => {
+    if (event.button !== 1) {
+        return
+    }
+
+    middle_drag.active = true
+    middle_drag.start_y = event.clientY
+    middle_drag.target = event.target
+    event.preventDefault()
+})
+
+document.addEventListener(`mouseup`, (event) => {
+    if (event.button !== 1) {
+        return
+    }
+
+    if (!middle_drag.active) {
+        return
+    }
+
+    let delta = middle_drag.start_y - event.clientY
+    middle_drag.active = false
+
+    if (Math.abs(delta) < MIDDLE_THRESHOLD) {
+        return
+    }
+
+    if (delta > 0) {
+        handle_middle_scroll(`top`, middle_drag.target)
+    }
+    else {
+        handle_middle_scroll(`bottom`, middle_drag.target)
+    }
+
+    event.preventDefault()
+})
+
+document.addEventListener(`mouseleave`, () => {
+    middle_drag.active = false
+})
+
+function handle_middle_scroll(direction, source) {
+    let target = resolve_scroll_target(source)
+
+    if (direction === `top`) {
+        scroll_element(target, 0)
+    }
+    else {
+        let bottom = get_scroll_bottom(target)
+        scroll_element(target, bottom)
+    }
+}
+
+function resolve_scroll_target(node) {
+    let current = node
+
+    while (current && current !== document.body) {
+        let style = window.getComputedStyle(current)
+        let overflow_y = style ? style.overflowY : ``
+
+        if (current.scrollHeight > current.clientHeight && overflow_y !== `visible`) {
+            return current
+        }
+
+        current = current.parentElement
+    }
+
+    return document.scrollingElement || document.documentElement || document.body
+}
+
+function scroll_element(target, value) {
+    if (!target) {
+        return
+    }
+
+    if (target === document.body || target === document.documentElement) {
+        window.scrollTo({top: value, behavior: 'smooth'})
+        return
+    }
+
+    target.scrollTo({top: value, behavior: 'smooth'})
+}
+
+function get_scroll_bottom(target) {
+    if (!target) {
+        return 0
+    }
+
+    if (target === document.body || target === document.documentElement) {
+        let element = document.scrollingElement || document.documentElement || document.body
+        return element.scrollHeight
+    }
+
+    return target.scrollHeight - target.clientHeight
 }
