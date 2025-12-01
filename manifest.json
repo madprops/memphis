@@ -4,7 +4,8 @@
     "version": "6",
     "description": "Cover the content of a website",
     "permissions": [
-        "activeTab"
+        "activeTab",
+        "http://localhost/*"
     ],
     "background": {
         "scripts": ["background.js"],

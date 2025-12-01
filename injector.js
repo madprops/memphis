@@ -20,7 +20,7 @@ let MIDDLE_THRESHOLD = 20
 // let slide_poll_interval = 5 * 60 * 1000
 let slide_poll_interval = 10 * 1000
 let slide_poll_timer = null
-let slide_endpoint = `http://localhost:4242/status`
+let slide_endpoint = `http://localhost:4242/state`
 
 // Function to toggle the overlay
 function toggle_overlay() {
@@ -143,11 +143,11 @@ function get_scroll_bottom(target) {
 }
 
 function schedule_slide() {
-    if (slide_poll_timer) {
-        return
-    }
-
     if (is_slide_enabled()) {
+        if (slide_poll_timer) {
+            return
+        }
+
         console.log(`Slide is active!`)
 
         slide_poll_timer = setInterval(() => {
@@ -173,8 +173,17 @@ function is_slide_enabled() {
 
 async function slide_action() {
     try {
-        let ans = await fetch(slide_endpoint, {method: `GET`})
-        console.log(ans)
+        let slide_response = await browser.runtime.sendMessage({
+            action: `slide_fetch`,
+            endpoint: slide_endpoint,
+        })
+
+        if (!slide_response || slide_response.success !== true) {
+            console.error(`Slide fetch failed`, slide_response ? slide_response.error : `No response`)
+            return
+        }
+
+        console.log(slide_response.payload)
     }
     catch (err) {
         console.error(err)
