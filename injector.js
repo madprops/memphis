@@ -2,18 +2,25 @@
 browser.runtime.onMessage.addListener((message) => {
     if (message.action === `toggle_overlay`) {
         toggle_overlay()
+        schedule_slide()
         return Promise.resolve({success: true})
     }
 })
 
 let overlay_on = false
 let overlay = null
+
 let middle_drag = {
     active: false,
     start_y: 0,
     target: null,
 }
+
 let MIDDLE_THRESHOLD = 20
+// let slide_poll_interval = 5 * 60 * 1000
+let slide_poll_interval = 10 * 1000
+let slide_poll_timer = null
+let slide_endpoint = `http://localhost:4242/status`
 
 // Function to toggle the overlay
 function toggle_overlay() {
@@ -134,3 +141,44 @@ function get_scroll_bottom(target) {
 
     return target.scrollHeight - target.clientHeight
 }
+
+function schedule_slide() {
+    if (slide_poll_timer) {
+        return
+    }
+
+    if (is_slide_enabled()) {
+        console.log(`Slide is active!`)
+
+        slide_poll_timer = setInterval(() => {
+            slide_action()
+        }, slide_poll_interval)
+
+        slide_action()
+    }
+    else {
+        clearInterval(slide_poll_timer)
+    }
+}
+
+function is_slide_enabled() {
+    try {
+        return window.wrappedJSObject &&
+        (window.wrappedJSObject.enable_slide === true)
+    }
+    catch (error) {
+        return false
+    }
+}
+
+async function slide_action() {
+    try {
+        let ans = await fetch(slide_endpoint, {method: `GET`})
+        console.log(ans)
+    }
+    catch (err) {
+        console.error(err)
+    }
+}
+
+schedule_slide()
