@@ -1,27 +1,41 @@
 {
-    "manifest_version": 2,
-    "name": "Memphis",
-    "version": "6",
-    "description": "Cover the content of a website",
-    "permissions": [
-        "activeTab",
-        "http://localhost/*"
-    ],
-    "background": {
-        "scripts": ["background.js"],
-        "persistent": false
-    },
-    "content_scripts": [
-        {
-            "matches": ["<all_urls>"],
-            "js": ["injector.js"]
-        }
-    ],
-    "browser_action": {
-        "default_icon": {
-            "48": "icons/icon-256.png",
-            "32": "icons/icon-256.png",
-            "16": "icons/icon-256.png"
-        }
+  "manifest_version": 3,
+  "name": "Memphis",
+  "version": "7",
+  "description": "Cover the content of a website",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "action": {
+    "default_icon": {
+      "48": "icons/icon-256.png",
+      "32": "icons/icon-256.png",
+      "16": "icons/icon-256.png"
     }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "injector.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "img/paste.jpg"
+      ],
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://youtu.be/*"
+      ]
+    }
+  ]
 }
