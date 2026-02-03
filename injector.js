@@ -248,7 +248,7 @@ function start_monitoring() {
         play_next_in_queue()
       }
     }
-  }, 500)
+  }, 300)
 }
 
 let play_next_in_queue = () => {
