@@ -3,6 +3,12 @@
   "name": "Memphis",
   "version": "7",
   "description": "Cover the content of a website",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{fe0cecec-f962-4933-93fe-ee55aa7c9fd0}",
+      "strict_min_version": "109.0"
+    }
+  },
   "permissions": [
     "activeTab",
     "storage"
